@@ -5,7 +5,7 @@ import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.kstream.Windowed
 import org.apache.kafka.streams.scala._
 import org.apache.kafka.streams.scala.kstream._
-import org.esgi.project.streaming.models.{MeanLatencyForURL, Metric, Visit, VisitWithLatency}
+import org.esgi.project.streaming.models.{Likes, Views}
 
 import java.io.InputStream
 import java.util.Properties
@@ -51,9 +51,9 @@ object StreamProcessing extends PlayJsonSupport {
   // defining processing graph
   val builder: StreamsBuilder = new StreamsBuilder
 
-  // TODO: declared topic sources to be used
-  val visits: KStream[String, Visit] = builder.stream[String, Visit](visitsTopicName)
-  val metrics: KStream[String, Metric] = builder.stream[String, Metric](metricsTopicName)
+  // declared topic sources to be used
+  val views: KStream[String, Views] = builder.stream[String, Views](viewTopicName)
+  val likes: KStream[String, Likes] = builder.stream[String, Likes](likesTopicName)
 
   /**
    * -------------------
@@ -61,7 +61,7 @@ object StreamProcessing extends PlayJsonSupport {
    * -------------------
    */
   // TODO: repartition visits per URL
-  val visitsGroupedByUrl: KGroupedStream[String, Visit] = ???
+  val stoppedAtStartOfTheMovieSinceStart: KGroupedStream[String, Views] = ???
 
   // TODO: implement a computation of the visits count per URL for the last 30 seconds,
   // TODO: the last minute and the last 5 minutes
