@@ -15,22 +15,36 @@ object StreamProcessing extends PlayJsonSupport {
   import org.apache.kafka.streams.scala.ImplicitConversions._
   import org.apache.kafka.streams.scala.serialization.Serdes._
 
-  // TODO: Predeclared store names to be used, fill your first & last name
-  val yourFirstName: String = ???
-  val yourLastName: String = ???
 
-  val applicationName = s"web-events-stream-app-$yourFirstName-$yourLastName"
-  val visitsTopicName: String = "visits"
-  val metricsTopicName: String = "metrics"
+  val applicationName = s"Kazaa-Movies"
 
-  val thirtySecondsStoreName: String = "VisitsOfLast30Seconds"
-  val lastMinuteStoreName = "VisitsOfLastMinute"
-  val lastFiveMinutesStoreName = "VisitsOfLast5Minutes"
 
-  val thirtySecondsByCategoryStoreName: String = "VisitsOfLast30SecondsByCategory"
-  val lastMinuteByCategoryStoreName = "VisitsOfLastMinuteByCategory"
-  val lastFiveMinutesByCategoryStoreName = "VisitsOfLast5MinutesByCategory"
-  val meanLatencyForURLStoreName = "MeanLatencyForURL"
+  val viewTopicName: String = "view"
+  val likesTopicName: String = "likes"
+
+  // Arret en début de filme
+
+  val stoppedAtStartOfTheMovieSinceStartStoreName: String = "stoppedAtStartOfTheMovieSinceStart"
+  val stoppedAtStartOfTheMovieLastMinuteStoreName: String = "stoppedAtStartOfTheMovieLastMinute"
+  val stoppedAtStartOfTheMovieLastFiveMinutesStoreName: String = "stoppedAtStartOfTheMovieLastFiveMinutes"
+
+  // Arret en millieu de film
+
+  val stoppedAtMiddleOfTheMovieSinceStartStoreName: String = "stoppedAtMiddleOfTheMovieSinceStart"
+  val stoppedAtMiddleOfTheMovieLastMinuteStoreName: String = "stoppedAtMiddleOfTheMovieLastMinute"
+  val stoppedAtMiddleOfTheMovieLastFiveMinuteStoreName: String = "stoppedAtMiddleOfTheMovieLastFiveMinute"
+
+  // Film terminé
+
+  val finishedTheMovieSinceStartStoreName: String = "finishedTheMovieSinceStart"
+  val finishedTheMovieLastMinuteStoreName: String = "finishedTheMovieLastMinute"
+  val finishedTheMovieLastFiveMinuteStoreName: String = "finishedTheMovieLastFiveMinute"
+
+  // Top 10 / Flop 10
+
+  val top10BestFeedbackStoreName : String = "top10BestFeedback"
+  val flop10WorstFeedbackStoreName : String = "flop10WorstFeedback"
+
 
   val props = buildProperties
 
