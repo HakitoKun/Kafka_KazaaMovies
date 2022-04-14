@@ -7,8 +7,6 @@ case class Views(
                   title: String,
                   view_category: String
                 )
-
-
 object Views {
   implicit val format: OFormat[Views] = Json.format[Views]
 }
