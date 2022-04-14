@@ -65,13 +65,7 @@ object StreamProcessing extends PlayJsonSupport {
   val groupedByTitle : KStream[String, Views] =
   views.map((_, views) => (views.title, views))
 
-  //val stoppedAtStartOfTheMovieSinceStart: KGroupedStream[String, Views] = views.groupBy()
-
-  // TODO: implement a computation of the visits count per URL for the last 30 seconds,
-  // TODO: the last minute and the last 5 minutes
-
   /// Arret en début de film
-  //val stoppedAtStartOfTheMovieSinceStart: KTable[String, Long] = groupedByTitle.filter((_, view) => view.view_category=="start_only").groupBy((_, v) => v.title)
 
   val startOnly: KGroupedStream[String, Views] = groupedByTitle.filter((_, views) => views.view_category.equals("start_only")).groupBy((_, v)=> v.title)
 
@@ -114,6 +108,8 @@ object StreamProcessing extends PlayJsonSupport {
     TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)).advanceBy(Duration.ofMinutes(1)))
     .count()(Materialized.as(finishedTheMovieLastFiveMinuteStoreName))
 
+  // Top 10 - Flop 10
+  
 
     // TOP 10
   val top10BestFeedback =
