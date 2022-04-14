@@ -69,14 +69,24 @@ object StreamProcessing extends PlayJsonSupport {
   // TODO: implement a computation of the visits count per URL for the last 30 seconds,
   // TODO: the last minute and the last 5 minutes
 
-  // TODO corrigé
+  /// Arret en début de film
   val stoppedAtStartOfTheMovieSinceStart: KTable[String, Long] = groupedByCategory.count()
 
 
-  // TODO last minute 
-  val stoppedAtStartOfTheMovieLastMinute : KTable[Windowed[String], Long] = groupedByCategory.count()
+  // TODO last minute
+  val stoppedAtStartOfTheMovieLastMinute : KTable[Windowed[String], Long] = groupedByCategory.windowedBy(
+      TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)).advanceBy(Duration.ofMinutes(1))
+      ).count()
 
-  val stoppedAtStartOfTheMovieLastFiveMinutes: KTable[Windowed[String], Long] = ???
+  val stoppedAtStartOfTheMovieLastFiveMinutes: KTable[Windowed[String], Long] = groupedByCategory.windowedBy(
+    TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)).advanceBy(Duration.ofMinutes(5))
+  ).count()
+
+  //Arret en millieu de film
+
+  val stoppedAtMiddleOfTheMovieSinceStart : KTable[Windowed[String], Long] = groupedByCategory.
+
+
 
   /**
    * -------------------
@@ -84,9 +94,7 @@ object StreamProcessing extends PlayJsonSupport {
    * -------------------
    */
   // TODO: repartition visits topic per category instead (based on the 2nd part of the URLs)
-  val visitsGroupedByCategory: KGroupedStream[String, Visit] = visits
-    .map((_, visit) => (visit.url.split("/")(1), visit))
-    .groupByKey(Grouped.`with`)
+  val visitsGroupedByCategory: KGroupedStream[String, Visit] = ???
 
   // TODO: implement a computation of the visits count per category for the last 30 seconds,
   // TODO: the last minute and the last 5 minutes
