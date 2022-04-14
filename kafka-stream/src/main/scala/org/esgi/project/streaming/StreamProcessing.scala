@@ -2,12 +2,13 @@ package org.esgi.project.streaming
 
 import io.github.azhur.kafkaserdeplayjson.PlayJsonSupport
 import org.apache.kafka.streams.KafkaStreams
-import org.apache.kafka.streams.kstream.Windowed
+import org.apache.kafka.streams.kstream.{TimeWindows, Windowed}
 import org.apache.kafka.streams.scala._
 import org.apache.kafka.streams.scala.kstream._
 import org.esgi.project.streaming.models.{Likes, Views}
 
 import java.io.InputStream
+import java.time.Duration
 import java.util.Properties
 
 object StreamProcessing extends PlayJsonSupport {
@@ -61,15 +62,23 @@ object StreamProcessing extends PlayJsonSupport {
    * -------------------
    */
   // TODO: repartition visits per URL
-  val stoppedAtStartOfTheMovieSinceStart: KGroupedStream[String, Views] = ???
+  val groupedByCategory : KGroupedStream[String, Views] = views.groupBy((_, v) => v.view_category)
+
+  //val stoppedAtStartOfTheMovieSinceStart: KGroupedStream[String, Views] = views.groupBy()
 
   // TODO: implement a computation of the visits count per URL for the last 30 seconds,
   // TODO: the last minute and the last 5 minutes
-  val visitsOfLast30Seconds: KTable[Windowed[String], Long] = ???
 
-  val visitsOfLast1Minute: KTable[Windowed[String], Long] = ???
+  // TODO A corriger
+  val stoppedAtStartOfTheMovieSinceStart: KTable[Windowed[String], Long] = groupedByCategory.windowedBy(
+    TimeWindows.ofSizeWithNoGrace(Duration.ofSeconds(30))
+      .advanceBy(Duration.ofSeconds(1))
+  )
+    .count()(Materialized.as(stoppedAtStartOfTheMovieSinceStartStoreName))
 
-  val visitsOfLast5Minute: KTable[Windowed[String], Long] = ???
+  val stoppedAtStartOfTheMovieLastMinute : KTable[Windowed[String], Long] = ???
+
+  val stoppedAtStartOfTheMovieLastFiveMinutes: KTable[Windowed[String], Long] = ???
 
   /**
    * -------------------
