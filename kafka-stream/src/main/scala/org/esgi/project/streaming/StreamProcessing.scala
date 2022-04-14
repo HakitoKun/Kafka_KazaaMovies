@@ -115,44 +115,11 @@ object StreamProcessing extends PlayJsonSupport {
     .count()(Materialized.as(finishedTheMovieLastFiveMinuteStoreName))
 
 
-  /**
-   * -------------------
-   * Part.2 of exercise
-   * -------------------
-   */
-  // TODO: repartition visits topic per category instead (based on the 2nd part of the URLs)
-  val visitsGroupedByCategory: KGroupedStream[String, Long] = ???
-
-  // TODO: implement a computation of the visits count per category for the last 30 seconds,
-  // TODO: the last minute and the last 5 minutes
-  val visitsOfLast30SecondsByCategory: KTable[Windowed[String], Long] = visitsGroupedByCategory
-    .windowedBy(
-      TimeWindows.of(Duration.ofSeconds(30)).advanceBy(Duration.ofSeconds(1))
-    ).count()
+    // TOP 10
+  val top10BestFeedback =
+  val flop10WorstFeedback =
 
 
-  val visitsOfLast1MinuteByCategory: KTable[Windowed[String], Long] = visitsGroupedByCategory
-    .windowedBy(
-      TimeWindows.of(Duration.ofMinutes(1)).advanceBy(Duration.ofMinutes(1))
-    ).count()
-
-  val visitsOfLast5MinuteByCategory: KTable[Windowed[String], Long] = visitsGroupedByCategory
-    .windowedBy(
-      TimeWindows.of(Duration.ofMinutes(5)).advanceBy(Duration.ofMinutes(1))
-    ).count()
-
-  // TODO: implement a join between the visits topic and the metrics topic,
-  // TODO: knowing the key for correlated events is currently the same UUID (and the same id field).
-  // TODO: the join should be done knowing the correlated events are emitted within a 5 seconds latency.
-  // TODO: the outputted message should be a VisitWithLatency object.
-
-  // TODO: based on the previous join, compute the mean latency per URL
-  val meanLatencyPerUrl: KTable[String, Long] = ???
-
-  // -------------------------------------------------------------
-  // TODO: now that you're here, materialize all of those KTables
-  // TODO: to stores to be able to query them in Webserver.scala
-  // -------------------------------------------------------------
 
   def run(): KafkaStreams = {
     val streams: KafkaStreams = new KafkaStreams(builder.build(), props)
