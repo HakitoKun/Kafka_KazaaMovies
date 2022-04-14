@@ -5,7 +5,7 @@ import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.kstream.{JoinWindows, TimeWindows, Windowed}
 import org.apache.kafka.streams.scala.StreamsBuilder
 import org.apache.kafka.streams.scala.kstream._
-import org.esgi.project.streaming.models.{Likes, Views}
+import org.esgi.project.streaming.models.{Likes, Views, ViewsPlusScore}
 import java.io.InputStream
 import java.time.Duration
 import java.util.Properties
