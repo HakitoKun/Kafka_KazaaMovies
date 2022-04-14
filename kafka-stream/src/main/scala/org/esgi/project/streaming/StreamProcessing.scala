@@ -1,7 +1,6 @@
 package org.esgi.project.streaming
 
 import io.github.azhur.kafkaserdeplayjson.PlayJsonSupport
-import jdk.internal.platform.Container.metrics
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.kstream.{JoinWindows, TimeWindows, Windowed}
 import org.apache.kafka.streams.scala.StreamsBuilder
@@ -61,8 +60,11 @@ object StreamProcessing extends PlayJsonSupport {
    * Part.1 of exercise
    * -------------------
    */
-  // TODO: repartition visits per URL
-  val groupedByCategory : KGroupedStream[String, Views] = views.groupBy((_, v) => v.view_category)
+  // TODO: A CORRIGER
+
+  val groupedByTitle : KGroupedStream[String, Views] =
+  (views.filter((k, view) => view.view_category=="start_only").groupBy((_, v) => v.title))
+    .count()
 
   //val stoppedAtStartOfTheMovieSinceStart: KGroupedStream[String, Views] = views.groupBy()
 
@@ -70,7 +72,9 @@ object StreamProcessing extends PlayJsonSupport {
   // TODO: the last minute and the last 5 minutes
 
   /// Arret en début de film
-  val stoppedAtStartOfTheMovieSinceStart: KTable[String, Long] = groupedByCategory.count()
+
+
+  val stoppedAtStartOfTheMovieSinceStart: KTable[String, Long] = groupedByTitle.count()
 
 
   // TODO last minute
@@ -79,12 +83,12 @@ object StreamProcessing extends PlayJsonSupport {
       ).count()
 
   val stoppedAtStartOfTheMovieLastFiveMinutes: KTable[Windowed[String], Long] = groupedByCategory.windowedBy(
-    TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)).advanceBy(Duration.ofMinutes(5))
+    TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(5)).advanceBy(Duration.ofMinutes(5))
   ).count()
 
   //Arret en millieu de film
 
-  val stoppedAtMiddleOfTheMovieSinceStart : KTable[Windowed[String], Long] = groupedByCategory.
+  // val stoppedAtMiddleOfTheMovieSinceStart : KTable[Windowed[String], Long] = groupedByCategory.
 
 
 
@@ -94,50 +98,33 @@ object StreamProcessing extends PlayJsonSupport {
    * -------------------
    */
   // TODO: repartition visits topic per category instead (based on the 2nd part of the URLs)
-  val visitsGroupedByCategory: KGroupedStream[String, Visit] = ???
+  val visitsGroupedByCategory: KGroupedStream[String, Long] = ???
 
   // TODO: implement a computation of the visits count per category for the last 30 seconds,
   // TODO: the last minute and the last 5 minutes
   val visitsOfLast30SecondsByCategory: KTable[Windowed[String], Long] = visitsGroupedByCategory
     .windowedBy(
       TimeWindows.of(Duration.ofSeconds(30)).advanceBy(Duration.ofSeconds(1))
-    )
-    .count()
+    ).count()
 
 
   val visitsOfLast1MinuteByCategory: KTable[Windowed[String], Long] = visitsGroupedByCategory
     .windowedBy(
       TimeWindows.of(Duration.ofMinutes(1)).advanceBy(Duration.ofMinutes(1))
-    )
-    .count()
-
+    ).count()
 
   val visitsOfLast5MinuteByCategory: KTable[Windowed[String], Long] = visitsGroupedByCategory
     .windowedBy(
       TimeWindows.of(Duration.ofMinutes(5)).advanceBy(Duration.ofMinutes(1))
-    )
-    .count()
+    ).count()
 
   // TODO: implement a join between the visits topic and the metrics topic,
   // TODO: knowing the key for correlated events is currently the same UUID (and the same id field).
   // TODO: the join should be done knowing the correlated events are emitted within a 5 seconds latency.
   // TODO: the outputted message should be a VisitWithLatency object.
-  val visitsWithMetrics: KStream[String, VisitWithLatency] = visits
-    .join(metrics)(
-      { (visit, metric) =>
-        VisitWithLatency(
-          _id = visit._id,
-          timestamp = visit.timestamp,
-          sourceIp = visit.sourceIp,
-          url = visit.url,
-          latency = metric.latency
-        )
-      },
-      JoinWindows.of(Duration.ofSeconds(5))
-    )
 
   // TODO: based on the previous join, compute the mean latency per URL
-  val meanLatencyPerUrl: KTable[String, MeanLatencyForURL] = ???
+  val meanLatencyPerUrl: KTable[String, Long] = ???
 
   // -------------------------------------------------------------
   // TODO: now that you're here, materialize all of those KTables
