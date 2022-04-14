@@ -103,11 +103,16 @@ object StreamProcessing extends PlayJsonSupport {
   ).count()(Materialized.as(stoppedAtStartOfTheMovieLastFiveMinutesStoreName))
 
   //  Film terminé
-  val full: KGroupedStream[String, Views] = groupedByTitle.filter((_, views) => views.view_category.equals("full")).groupBy((_, v)=> v.title)
-  val finishedTheMovieSinceStart : KTable[String, Long] = full.count()(Materialized.as(finishedTheMovieSinceStartStoreName))
+  val finish: KGroupedStream[String, Views] = groupedByTitle.filter((_, views) => views.view_category.equals("full")).groupBy((_, v)=> v.title)
+  val finishedTheMovieSinceStart : KTable[String, Long] = finish.count()(Materialized.as(finishedTheMovieSinceStartStoreName))
 
+  val finishedTheMovieLastMinute: KTable[Windowed[String], Long] = finish.windowedBy(
+    TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)).advanceBy(Duration.ofMinutes(1)))
+    .count()(Materialized.as(stoppedAtStartOfTheMovieLastMinuteStoreName))
 
-
+  val finishedTheMovieLastFiveMinute : KTable[Windowed[String], Long] = finish.windowedBy(
+    TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)).advanceBy(Duration.ofMinutes(1)))
+    .count()(Materialized.as(finishedTheMovieLastFiveMinuteStoreName))
 
 
   /**
