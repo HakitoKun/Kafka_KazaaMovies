@@ -110,15 +110,15 @@ object StreamProcessing extends PlayJsonSupport {
 
   // Top 10 - Flop 10
 
-  val joinWithScore: KStream[String, ViewPlusScore] = views
+  val joinWithScore: KStream[String, ViewsPlusScore] = views
     .join(likes)({ (view, like) =>
-      ViewPlusScore(view._id, view.title, view.view_category, like.score)
+      ViewsPlusScore(view._id, view.title, view.view_category, like.score)
     }, JoinWindows.of(Duration.ofSeconds(5)))
 
 
   // TOP 10
-  val top10BestFeedback =
-  val flop10WorstFeedback =
+  // val top10BestFeedback =
+  // val flop10WorstFeedback =
 
 
 
