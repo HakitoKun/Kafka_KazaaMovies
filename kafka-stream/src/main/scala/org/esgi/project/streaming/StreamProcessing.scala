@@ -42,8 +42,8 @@ object StreamProcessing extends PlayJsonSupport {
 
   // Top 10 / Flop 10
 
-  val top10BestFeedbackStoreName : String = "top10BestFeedback"
-  val flop10WorstFeedbackStoreName : String = "flop10WorstFeedback"
+  val top10FeedbackStoreName : String = "top10Feedback"
+  val flop10FeedbackStoreName : String = "flop10Feedback"
 
 
   val props = buildProperties
@@ -71,15 +71,13 @@ object StreamProcessing extends PlayJsonSupport {
   // TODO: the last minute and the last 5 minutes
 
   /// Arret en début de film
-
-
   //val stoppedAtStartOfTheMovieSinceStart: KTable[String, Long] = groupedByTitle.filter((_, view) => view.view_category=="start_only").groupBy((_, v) => v.title)
 
   val startOnly: KGroupedStream[String, Views] = groupedByTitle.filter((_, views) => views.view_category.equals("start_only")).groupBy((_, v)=> v.title)
+
   val stoppedAtStartOfTheMovieSinceStart : KTable[String, Long] =
     startOnly.count()(Materialized.as(stoppedAtStartOfTheMovieSinceStartStoreName))
 
-  // TODO last minute
   val stoppedAtStartOfTheMovieLastMinute : KTable[Windowed[String], Long] = startOnly.windowedBy(
       TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)).advanceBy(Duration.ofMinutes(1))
       ).count()(Materialized.as(stoppedAtMiddleOfTheMovieLastMinuteStoreName))
@@ -91,6 +89,7 @@ object StreamProcessing extends PlayJsonSupport {
   //Arret en millieu de film
 
   val half: KGroupedStream[String, Views] = groupedByTitle.filter((_, views) => views.view_category.equals("half")).groupBy((_, v)=> v.title)
+
   val stoppedAtMiddleOfTheMovieSinceStart : KTable[String, Long] =
     half.count()(Materialized.as(stoppedAtMiddleOfTheMovieSinceStartStoreName))
 
@@ -104,6 +103,7 @@ object StreamProcessing extends PlayJsonSupport {
 
   //  Film terminé
   val finish: KGroupedStream[String, Views] = groupedByTitle.filter((_, views) => views.view_category.equals("full")).groupBy((_, v)=> v.title)
+
   val finishedTheMovieSinceStart : KTable[String, Long] = finish.count()(Materialized.as(finishedTheMovieSinceStartStoreName))
 
   val finishedTheMovieLastMinute: KTable[Windowed[String], Long] = finish.windowedBy(
