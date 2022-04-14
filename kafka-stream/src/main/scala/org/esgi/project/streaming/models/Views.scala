@@ -2,13 +2,13 @@ package org.esgi.project.streaming.models
 
 import play.api.libs.json.{Json, OFormat}
 
-case class Visit(
+case class Views(
                   _id: String,
-                  timestamp: String,
-                  sourceIp: String,
-                  url: String
+                  title: String,
+                  view_category: String
                 )
 
-object Visit {
-  implicit val format: OFormat[Visit] = Json.format[Visit]
+
+object Views {
+  implicit val format: OFormat[Views] = Json.format[Views]
 }
