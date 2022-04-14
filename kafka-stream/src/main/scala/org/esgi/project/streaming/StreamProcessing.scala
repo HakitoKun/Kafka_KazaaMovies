@@ -62,9 +62,8 @@ object StreamProcessing extends PlayJsonSupport {
    */
   // TODO: A CORRIGER
 
-  val groupedByTitle : KGroupedStream[String, Views] =
-  (views.filter((k, view) => view.view_category=="start_only").groupBy((_, v) => v.title))
-    .count()
+  val groupedByTitle : KStream[String, Views] =
+  views.map((_, views) => (views.title, views))
 
   //val stoppedAtStartOfTheMovieSinceStart: KGroupedStream[String, Views] = views.groupBy()
 
@@ -74,19 +73,25 @@ object StreamProcessing extends PlayJsonSupport {
   /// Arret en début de film
 
 
-  val stoppedAtStartOfTheMovieSinceStart: KTable[String, Long] = groupedByTitle.count()
+  //val stoppedAtStartOfTheMovieSinceStart: KTable[String, Long] = groupedByTitle.filter((_, view) => view.view_category=="start_only").groupBy((_, v) => v.title)
 
+  val startOnly: KGroupedStream[String, Views] = groupedByTitle.filter((_, views) => views.view_category.equals("start_only")).groupBy((_, v)=> v.title)
+  val stoppedAtStartOfTheMovieSinceStart : KTable[String, Long] =
+    startOnly.count()(Materialized.as(stoppedAtStartOfTheMovieSinceStartStoreName))
 
   // TODO last minute
-  val stoppedAtStartOfTheMovieLastMinute : KTable[Windowed[String], Long] = groupedByCategory.windowedBy(
+  val stoppedAtStartOfTheMovieLastMinute : KTable[Windowed[String], Long] = startOnly.windowedBy(
       TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)).advanceBy(Duration.ofMinutes(1))
-      ).count()
+      ).count()(Materialized.as(stoppedAtMiddleOfTheMovieLastMinuteStoreName))
 
-  val stoppedAtStartOfTheMovieLastFiveMinutes: KTable[Windowed[String], Long] = groupedByCategory.windowedBy(
+  val stoppedAtStartOfTheMovieLastFiveMinutes: KTable[Windowed[String], Long] = startOnly.windowedBy(
     TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(5)).advanceBy(Duration.ofMinutes(5))
-  ).count()
+  ).count()(Materialized.as(stoppedAtStartOfTheMovieLastFiveMinutesStoreName))
 
   //Arret en millieu de film
+
+
+
 
   // val stoppedAtMiddleOfTheMovieSinceStart : KTable[Windowed[String], Long] = groupedByCategory.
 
