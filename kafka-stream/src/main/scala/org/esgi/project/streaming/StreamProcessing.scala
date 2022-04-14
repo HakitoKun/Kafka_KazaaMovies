@@ -109,9 +109,14 @@ object StreamProcessing extends PlayJsonSupport {
     .count()(Materialized.as(finishedTheMovieLastFiveMinuteStoreName))
 
   // Top 10 - Flop 10
-  
 
-    // TOP 10
+  val joinWithScore: KStream[String, ViewPlusScore] = views
+    .join(likes)({ (view, like) =>
+      ViewPlusScore(view._id, view.title, view.view_category, like.score)
+    }, JoinWindows.of(Duration.ofSeconds(5)))
+
+
+  // TOP 10
   val top10BestFeedback =
   val flop10WorstFeedback =
 
