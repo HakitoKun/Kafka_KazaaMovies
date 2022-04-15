@@ -117,7 +117,7 @@ object StreamProcessing extends PlayJsonSupport {
       (_,v, agg)=>{agg.increment(v.score)}.computeMean.attributeTitle(v.title)
     )(Materialized.as(scoreParFilmStoreName))
 
-  
+
   def run(): KafkaStreams = {
     val streams: KafkaStreams = new KafkaStreams(builder.build(), props)
     streams.start()
