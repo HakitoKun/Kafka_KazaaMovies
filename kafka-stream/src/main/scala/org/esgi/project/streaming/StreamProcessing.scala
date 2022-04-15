@@ -3,9 +3,10 @@ package org.esgi.project.streaming
 import io.github.azhur.kafkaserdeplayjson.PlayJsonSupport
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.kstream.{JoinWindows, TimeWindows, Windowed}
-import org.apache.kafka.streams.scala.StreamsBuilder
+import org.apache.kafka.streams.scala._
 import org.apache.kafka.streams.scala.kstream._
-import org.esgi.project.streaming.models.{Likes, Views, ViewsPlusScore}
+import org.esgi.project.streaming.models.{Likes, MovieStat, Views, ViewsPlusScore}
+
 import java.io.InputStream
 import java.time.Duration
 import java.util.Properties
@@ -19,32 +20,19 @@ object StreamProcessing extends PlayJsonSupport {
   val applicationName = s"Kazaa-Movies"
 
 
-  val viewTopicName: String = "view"
+  val viewTopicName: String = "views"
   val likesTopicName: String = "likes"
 
-  // Arret en début de filme
+  // WindowsPeriode
 
-  val stoppedAtStartOfTheMovieSinceStartStoreName: String = "stoppedAtStartOfTheMovieSinceStart"
-  val stoppedAtStartOfTheMovieLastMinuteStoreName: String = "stoppedAtStartOfTheMovieLastMinute"
-  val stoppedAtStartOfTheMovieLastFiveMinutesStoreName: String = "stoppedAtStartOfTheMovieLastFiveMinutes"
-
-  // Arret en millieu de film
-
-  val stoppedAtMiddleOfTheMovieSinceStartStoreName: String = "stoppedAtMiddleOfTheMovieSinceStart"
-  val stoppedAtMiddleOfTheMovieLastMinuteStoreName: String = "stoppedAtMiddleOfTheMovieLastMinute"
-  val stoppedAtMiddleOfTheMovieLastFiveMinuteStoreName: String = "stoppedAtMiddleOfTheMovieLastFiveMinute"
-
-  // Film terminé
-
-  val finishedTheMovieSinceStartStoreName: String = "finishedTheMovieSinceStart"
-  val finishedTheMovieLastMinuteStoreName: String = "finishedTheMovieLastMinute"
-  val finishedTheMovieLastFiveMinuteStoreName: String = "finishedTheMovieLastFiveMinute"
+  val movieSinceStartStoreName: String = "movieSinceStart"
+  val movieLastMinuteStoreName: String = "movieLastMinute"
+  val movieLastFiveMinutesStoreName: String = "movieLastFiveMinutes"
 
   // Top 10 / Flop 10
 
-  val top10FeedbackStoreName : String = "top10Feedback"
-  val flop10FeedbackStoreName : String = "flop10Feedback"
-
+  val meanScoreMoveStoreName : String = "meanScoreMovie"
+  val totalViewByMovieStoreName : String = "totalViewByMovie"
 
   val props = buildProperties
 
@@ -62,51 +50,38 @@ object StreamProcessing extends PlayJsonSupport {
    */
   // TODO: A CORRIGER
 
-  val groupedByTitle : KStream[String, Views] =
-  views.map((_, views) => (views.title, views))
+  val groupedByTitle : KGroupedStream[Long, Views] = {
+    views
+      .groupBy((_, value) => value._id)
+  }
+
+  val lastMinute : KTable[Windowed[Long], MovieStat] =
+    groupedByTitle
+    .windowedBy(
+      TimeWindows.ofSizeWithNoGrace(Duration.ofSeconds(60))
+      .advanceBy(Duration.ofSeconds(60)))
+    .aggregate(MovieStat.empty)(
+      (_, v, agg) => agg.increment(v.view_category).defineTitle(v.title)
+    )(Materialized.as(movieLastMinuteStoreName))
+
+  val lastFiveMinute : KTable[Windowed[Long], MovieStat] =
+    groupedByTitle
+      .windowedBy(
+        TimeWindows.ofSizeWithNoGrace(Duration.ofSeconds(60 * 5))
+        .advanceBy(Duration.ofSeconds(60 * 5)))
+      .aggregate(MovieStat.empty)(
+        (_, v, agg) => agg.increment(v.view_category).defineTitle(v.title)
+      )(Materialized.as(movieLastFiveMinutesStoreName))
+
+  val totalView : KTable[String, Long] =
+    views
+      .groupBy((_, v) => v.title)
+      .count()(Materialized.as(totalViewByMovieStoreName))
+
 
   /// Arret en début de film
 
-  val startOnly: KGroupedStream[String, Views] = groupedByTitle.filter((_, views) => views.view_category.equals("start_only")).groupBy((_, v)=> v.title)
 
-  val stoppedAtStartOfTheMovieSinceStart : KTable[String, Long] =
-    startOnly.count()(Materialized.as(stoppedAtStartOfTheMovieSinceStartStoreName))
-
-  val stoppedAtStartOfTheMovieLastMinute : KTable[Windowed[String], Long] = startOnly.windowedBy(
-      TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)).advanceBy(Duration.ofMinutes(1))
-      ).count()(Materialized.as(stoppedAtMiddleOfTheMovieLastMinuteStoreName))
-
-  val stoppedAtStartOfTheMovieLastFiveMinutes: KTable[Windowed[String], Long] = startOnly.windowedBy(
-    TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(5)).advanceBy(Duration.ofMinutes(5))
-  ).count()(Materialized.as(stoppedAtStartOfTheMovieLastFiveMinutesStoreName))
-
-  //Arret en millieu de film
-
-  val half: KGroupedStream[String, Views] = groupedByTitle.filter((_, views) => views.view_category.equals("half")).groupBy((_, v)=> v.title)
-
-  val stoppedAtMiddleOfTheMovieSinceStart : KTable[String, Long] =
-    half.count()(Materialized.as(stoppedAtMiddleOfTheMovieSinceStartStoreName))
-
-  val stoppedAtMiddleOfTheMovieLastMinute : KTable[Windowed[String], Long] = half.windowedBy(
-    TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)).advanceBy(Duration.ofMinutes(1))
-  ).count()(Materialized.as(stoppedAtMiddleOfTheMovieLastMinuteStoreName))
-
-  val stoppedAtMiddleOfTheMovieLastFiveMinutes: KTable[Windowed[String], Long] = half.windowedBy(
-    TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(5)).advanceBy(Duration.ofMinutes(5))
-  ).count()(Materialized.as(stoppedAtStartOfTheMovieLastFiveMinutesStoreName))
-
-  //  Film terminé
-  val finish: KGroupedStream[String, Views] = groupedByTitle.filter((_, views) => views.view_category.equals("full")).groupBy((_, v)=> v.title)
-
-  val finishedTheMovieSinceStart : KTable[String, Long] = finish.count()(Materialized.as(finishedTheMovieSinceStartStoreName))
-
-  val finishedTheMovieLastMinute: KTable[Windowed[String], Long] = finish.windowedBy(
-    TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)).advanceBy(Duration.ofMinutes(1)))
-    .count()(Materialized.as(stoppedAtStartOfTheMovieLastMinuteStoreName))
-
-  val finishedTheMovieLastFiveMinute : KTable[Windowed[String], Long] = finish.windowedBy(
-    TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)).advanceBy(Duration.ofMinutes(1)))
-    .count()(Materialized.as(finishedTheMovieLastFiveMinuteStoreName))
 
   // Top 10 - Flop 10
 
