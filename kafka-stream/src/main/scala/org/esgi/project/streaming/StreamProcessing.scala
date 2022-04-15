@@ -5,7 +5,7 @@ import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.kstream.{JoinWindows, TimeWindows, Windowed}
 import org.apache.kafka.streams.scala.StreamsBuilder
 import org.apache.kafka.streams.scala.kstream._
-import org.esgi.project.streaming.models.{Likes, Views, ViewsPlusScore}
+import org.esgi.project.streaming.models.{Likes, Views, ViewsPlusScore, MeanScoreFilm}
 import java.io.InputStream
 import java.time.Duration
 import java.util.Properties
@@ -42,8 +42,7 @@ object StreamProcessing extends PlayJsonSupport {
 
   // Top 10 / Flop 10
 
-  val top10FeedbackStoreName : String = "top10Feedback"
-  val flop10FeedbackStoreName : String = "flop10Feedback"
+  val scoreParFilmStoreName: String = "scoreParFilm"
 
 
   val props = buildProperties
@@ -60,7 +59,6 @@ object StreamProcessing extends PlayJsonSupport {
    * Part.1 of exercise
    * -------------------
    */
-  // TODO: A CORRIGER
 
   val groupedByTitle : KStream[String, Views] =
   views.map((_, views) => (views.title, views))
@@ -112,14 +110,14 @@ object StreamProcessing extends PlayJsonSupport {
 
   val joinWithScore: KStream[String, ViewsPlusScore] = views.join(likes)({(view, like) =>
     ViewsPlusScore(view._id, view.title, view.view_category, like.score)
-  }, JoinWindows.ofTimeDifferenceWithNoGrace(Duration.ofSeconds(5)))
+  }, JoinWindows.ofTimeDifferenceWithNoGrace(Duration.ofSeconds(30)))
 
-  // TOP 10
-  // val top10BestFeedback =
-  // val flop10WorstFeedback =
+  val meanScorePerFilm: KTable[Long, MeanScoreFilm] = joinWithScore.groupBy((_,value)=> value._id)
+    .aggregate(MeanScoreFilm.empty)(
+      (_,v, agg)=>{agg.increment(v.score)}.computeMean.attributeTitle(v.title)
+    )(Materialized.as(scoreParFilmStoreName))
 
-
-
+  
   def run(): KafkaStreams = {
     val streams: KafkaStreams = new KafkaStreams(builder.build(), props)
     streams.start()
