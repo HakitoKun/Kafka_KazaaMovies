@@ -6,7 +6,7 @@ case class ViewsPlusScore(
                   _id: Long,
                   title: String,
                   view_category: String,
-                  score: Long
+                  score: Double
                 )
 object ViewsPlusScore {
   implicit val format: OFormat[ViewsPlusScore] = Json.format[ViewsPlusScore]

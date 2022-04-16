@@ -5,9 +5,9 @@ case class MovieViewResponse(
                             _id: Long,
                             title: String,
                             view_count: Long,
-                            past : Stat,
-                            last_minute: Stat,
-                            last_five_minutes: Stat
+                            past : StatResponse,
+                            last_minute: StatResponse,
+                            last_five_minutes: StatResponse
                             )
 
 

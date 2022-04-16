@@ -3,7 +3,7 @@ import play.api.libs.json.{Json, OFormat}
 
 case class Likes(
                               _id: Long,
-                              score: Long,
+                              score: Double,
                             )
 object Likes {
   implicit val format: OFormat[Likes] = Json.format[Likes]
