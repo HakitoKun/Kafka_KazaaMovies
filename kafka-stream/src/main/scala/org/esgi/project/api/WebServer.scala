@@ -6,9 +6,9 @@ import akka.http.scaladsl.server.Route
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
 import org.apache.kafka.streams.{KafkaStreams, StoreQueryParameters}
 import org.apache.kafka.streams.state.{QueryableStoreTypes, ReadOnlyKeyValueStore, ReadOnlyWindowStore}
-import org.esgi.project.api.models.{MovieViewResponse, StatResponse}
+import org.esgi.project.api.models.{MovieViewResponse, ScoreResponse, StatResponse, TopFlopResponse}
 import org.esgi.project.streaming.StreamProcessing
-import org.esgi.project.streaming.models.MovieStat
+import org.esgi.project.streaming.models.{MeanScoreFilm, MovieStat}
 
 import java.time.Instant
 import scala.jdk.CollectionConverters._
@@ -105,8 +105,22 @@ object WebServer extends PlayJsonSupport {
       path("stats" / "ten" / "best" / Segment ) { affinity : String =>
         get {
           affinity match {
-            case "score" => ???
-            case "views" => ???
+            case "score" =>
+              val kvTop10BestScore: ReadOnlyKeyValueStore[String, MeanScoreFilm] = streams
+                .store(StoreQueryParameters.fromNameAndType(
+                  StreamProcessing.scoreParFilmStoreName, QueryableStoreTypes.keyValueStore[String, MeanScoreFilm]()))
+
+              complete(
+                kvTop10BestScore.all().asScala.map(kv => ScoreResponse(kv.key, kv.value.meanScore)).toList.sortBy(- _.score).take(10)
+              )
+            case "views" =>
+              val kvTop10BestViews: ReadOnlyKeyValueStore[String, Long] = streams
+              .store(StoreQueryParameters.fromNameAndType(
+                StreamProcessing.totalViewByMovieStoreName, QueryableStoreTypes.keyValueStore[String, Long]()))
+
+              complete(
+                kvTop10BestViews.all().asScala.map(kv => TopFlopResponse(kv.key, kv.value)).toList.sortBy(- _.views).take(10)
+              )
             case _ =>
               complete(
                 HttpResponse(StatusCodes.NotFound, entity = "Not found")
@@ -118,13 +132,49 @@ object WebServer extends PlayJsonSupport {
         get {
           affinity match {
             case "score" =>
-              /*val kvTop10BestScore: ReadOnlyKeyValueStore[String, Long] = streams
+              val kvTop10WorstScore: ReadOnlyKeyValueStore[String, MeanScoreFilm] = streams
                 .store(StoreQueryParameters.fromNameAndType(
-                  StreamProcessing.top10BestScoreStoreName, QueryableStoreTypes.()))
-*/          complete(
-              HttpResponse(StatusCodes.NotFound, entity = "Not found")
-            )
-            case "views" => ???
+                  StreamProcessing.scoreParFilmStoreName, QueryableStoreTypes.keyValueStore[String, MeanScoreFilm]()))
+
+              complete(
+                kvTop10WorstScore.all().asScala.map(kv => ScoreResponse(kv.key, kv.value.meanScore)).toList.sortBy(_.score).take(10)
+              )
+
+            case "views" =>
+              val kvTop10WorstViews: ReadOnlyKeyValueStore[String, Long] = streams
+                .store(StoreQueryParameters.fromNameAndType(
+                  StreamProcessing.totalViewByMovieStoreName, QueryableStoreTypes.keyValueStore[String, Long]()))
+
+              complete(
+                kvTop10WorstViews.all().asScala.map(kv => TopFlopResponse(kv.key, kv.value)).toList.sortBy(_.views).take(10)
+              )
+            case _ =>
+              complete(
+                HttpResponse(StatusCodes.NotFound, entity = "Not found")
+              )
+          }
+        }
+      },
+        path("stats" / "ten" / "best" / Segment ) { affinity : String =>
+        get {
+          affinity match {
+            case "score" =>
+              val kvTop10BestScore: ReadOnlyKeyValueStore[String, Double] = streams
+                .store(StoreQueryParameters.fromNameAndType(
+                  StreamProcessing.scoreParFilmStoreName, QueryableStoreTypes.keyValueStore[String, Double]()))
+
+              complete(
+                kvTop10BestScore.all().asScala.map(kv => ScoreResponse(kv.key, kv.value)).toList.sortBy(- _.score).take(10)
+              )
+
+            case "views" =>
+              val kvTop10BestViews: ReadOnlyKeyValueStore[String, Long] = streams
+                .store(StoreQueryParameters.fromNameAndType(
+                  StreamProcessing.scoreParFilmStoreName, QueryableStoreTypes.keyValueStore[String, Long]()))
+
+              complete(
+                kvTop10BestViews.all().asScala.map(kv => TopFlopResponse(kv.key, kv.value)).toList.sortBy(- _.views).take(10)
+              )
             case _ =>
               complete(
                 HttpResponse(StatusCodes.NotFound, entity = "Not found")

@@ -5,7 +5,7 @@ import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.kstream.{JoinWindows, TimeWindows, Windowed}
 import org.apache.kafka.streams.scala._
 import org.apache.kafka.streams.scala.kstream._
-import org.esgi.project.streaming.models.{Likes, MovieStat, Views, ViewsPlusScore}
+import org.esgi.project.streaming.models.{Likes, MeanScoreFilm, MovieStat, Views, ViewsPlusScore}
 
 import java.io.InputStream
 import java.time.Duration
@@ -33,6 +33,8 @@ object StreamProcessing extends PlayJsonSupport {
 
   val meanScoreMoveStoreName : String = "meanScoreMovie"
   val totalViewByMovieStoreName : String = "totalViewByMovie"
+
+  val scoreParFilmStoreName: String = "scoreParFilm"
 
   val props = buildProperties
 
@@ -82,16 +84,16 @@ object StreamProcessing extends PlayJsonSupport {
   /// Arret en début de film
 
 
-
-  // Top 10 - Flop 10
+  // TOP 10
 
   val joinWithScore: KStream[String, ViewsPlusScore] = views.join(likes)({(view, like) =>
     ViewsPlusScore(view._id, view.title, view.view_category, like.score)
-  }, JoinWindows.ofTimeDifferenceWithNoGrace(Duration.ofSeconds(5)))
+  }, JoinWindows.ofTimeDifferenceWithNoGrace(Duration.ofSeconds(30)))
 
-  // TOP 10
-  // val top10BestFeedback =
-  // val flop10WorstFeedback =
+  val meanScorePerFilm: KTable[String, MeanScoreFilm] = joinWithScore.groupBy((_,value) => value.title)
+    .aggregate(MeanScoreFilm.empty)(
+      (_,v, agg)=>{agg.increment(v.score)}.computeMean.attributeTitle(v.title)
+    )(Materialized.as(scoreParFilmStoreName))
 
 
 
